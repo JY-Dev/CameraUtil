@@ -24,22 +24,19 @@ open class CameraBaseActivity : AppCompatActivity() {
         when (requestCode) {
             cameraUtil.REQUEST_TAKE_PHOTO -> {
                 if (resultCode == Activity.RESULT_OK)
-                    getImage(CameraStatus.ALBUM.name, data?.data)
+                    getImage(data?.data)
             }
             cameraUtil.REQUEST_TAKE_ALBUM -> {
                 if (resultCode == Activity.RESULT_OK)
-                    getImage(CameraStatus.ALBUM.name, data?.data)
+                    getImage(data?.data)
             }
 
         }
         super.onActivityResult(requestCode, resultCode, data)
     }
 
-    private fun getImage(where: String, uri: Uri?) {
-        when (where) {
-            CameraStatus.ALBUM.name -> cameraUtil.setImageUri(uri)
-            CameraStatus.CAMERA.name -> cameraUtil.galleryAddPic()
-        }
+    private fun getImage( uri: Uri?) {
+        cameraUtil.setImageUri(uri)
         cameraViewModel.setImageUri(cameraUtil.getImageUri())
     }
 
