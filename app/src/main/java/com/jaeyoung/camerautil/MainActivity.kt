@@ -1,6 +1,7 @@
 package com.jaeyoung.camerautil
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
@@ -8,69 +9,26 @@ import android.os.Bundle
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.lifecycle.Observer
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.test_layout.view.*
 import java.util.zip.Inflater
+import javax.inject.Inject
 
-class MainActivity : AppCompatActivity() {
-    lateinit var cameraUtil : CameraUtil
-    var imagArray = mutableListOf<Uri?>()
-
+class MainActivity : CameraBaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        cameraUtil = CameraUtil(this)
+        cameraViewModel.imageUri.observe(this, Observer {
+            test_img.setImageURI(it)
+        })
         test1.setOnClickListener {
-            cameraUtil.getAlbum()
+            gotoAlbum()
         }
         test2.setOnClickListener {
-            cameraUtil.captureCamera()
+            gotoCamera()
         }
 
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if(resultCode != RESULT_OK) return
-        when(requestCode){
-            cameraUtil.REQUEST_TAKE_PHOTO -> {
-                if (resultCode == Activity.RESULT_OK) {
-                    try {
-                        cameraUtil.galleryAddPic()
-                        imageAdd(cameraUtil.getImageUri())
-
-                    } catch (e: Exception) {
-                    }
-
-                } else {
-                    Toast.makeText(this, "사진찍기를 취소하였습니다.", Toast.LENGTH_SHORT).show()
-                }
-            }
-            cameraUtil.REQUEST_TAKE_ALBUM ->{
-                if (resultCode == Activity.RESULT_OK) {
-                    if (data?.data != null) {
-                        try {
-                            cameraUtil.setImageUri(data.data)
-                            imageAdd(cameraUtil.getImageUri())
-                            //cropImage()
-                        } catch (e: Exception) {
-                        }
-                    }
-                }
-            }
-
-        }
-        super.onActivityResult(requestCode, resultCode, data)
-
-    }
-
-    private fun imageAdd(uri:Uri?) {
-        val view = layoutInflater.inflate(R.layout.test_layout, null) as LinearLayout
-        imagArray.add(uri)
-        view.test_Img.setImageURI(uri)
-        view.test_btn.setOnClickListener {
-            imagArray.remove(uri)
-            test_view.removeView(view)
-        }
-        test_view.addView(view)
     }
 }

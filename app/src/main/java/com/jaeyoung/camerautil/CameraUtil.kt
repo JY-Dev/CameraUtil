@@ -11,22 +11,32 @@ import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
+import dagger.Module
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.components.ActivityComponent
+import dagger.hilt.android.components.ApplicationComponent
+import dagger.hilt.android.qualifiers.ActivityContext
+import dagger.hilt.android.scopes.ActivityScoped
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.inject.Inject
 
-class CameraUtil(context: Context) {
+
+class CameraUtil @Inject constructor(@ActivityContext private val context: Context) {
     val REQUEST_TAKE_PHOTO = 2222
     val REQUEST_TAKE_ALBUM = 3333
     private val mContext = context
+
     //private val REQUEST_IMAGE_CROP = 4444
     private lateinit var mCurrentPhotoPath: String
     private var imageUri: Uri? = null
     private val activity = mContext as Activity
-    lateinit var f:File
+    lateinit var f: File
 
-    private fun permission(func : () -> Unit){
+    private fun permission(func: () -> Unit) {
         val permissionListener = object : PermissionListener {
             override fun onPermissionDenied(deniedPermissions: MutableList<String>?) {
 
@@ -36,6 +46,7 @@ class CameraUtil(context: Context) {
                 func()
             }
         }
+
         TedPermission.with(mContext)
             .setPermissionListener(permissionListener)
             .setRationaleMessage(mContext.resources.getString(R.string.permission_2))
@@ -58,9 +69,10 @@ class CameraUtil(context: Context) {
 
     fun getAlbum() {
         permission {
-            val intent = Intent(Intent.ACTION_PICK)
-            intent.type = android.provider.MediaStore.Images.Media.CONTENT_TYPE
-            intent.setDataAndType(imageUri, "image/*")
+            val intent = Intent(Intent.ACTION_PICK).apply {
+                type = MediaStore.Images.Media.CONTENT_TYPE
+                setDataAndType(imageUri, "image/*")
+            }
             activity.startActivityForResult(intent, REQUEST_TAKE_ALBUM)
         }
     }
@@ -70,25 +82,11 @@ class CameraUtil(context: Context) {
             val state = Environment.getExternalStorageState()
             // 외장 메모리 검사
             if (Environment.MEDIA_MOUNTED == state) {
+                val providerURI = FileProvider.getUriForFile(mContext, mContext.packageName, createImageFile())
                 val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-
-                if (takePictureIntent.resolveActivity(mContext.packageManager) != null) {
-                    var photoFile: File? = null
-                    try {
-                        photoFile = createImageFile()
-                    } catch (ex: IOException) {
-                        System.out.println("error="+ex.stackTrace)
-                    }
-
-                    if (photoFile != null) {
-                        // getUriForFile의 두 번째 인자는 Manifest provier의 authorites와 일치해야 함
-                        val providerURI = FileProvider.getUriForFile(mContext, mContext.packageName, photoFile)
-                        imageUri = providerURI
-                        // 인텐트에 전달할 때는 FileProvier의 Return값인 content://로만!!, providerURI의 값에 카메라 데이터를 넣어 보냄
-                        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, providerURI)
-                        activity.startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO)
-                    }
-                }
+                // 인텐트에 전달할 때는 FileProvier의 Return값인 content://로만!!, providerURI의 값에 카메라 데이터를 넣어 보냄
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, providerURI)
+                activity.startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO)
             } else {
                 Toast.makeText(mContext, "저장공간이 접근 불가능한 기기입니다", Toast.LENGTH_SHORT).show()
             }
@@ -96,25 +94,20 @@ class CameraUtil(context: Context) {
 
     }
 
-    fun createImageFile(): File {
+    private fun createImageFile(): File {
         // Create an image file name
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
-        val imageFileName = "JPEG_$timeStamp.jpg"
         val storageDir = mContext.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-        return File.createTempFile("JPEG_${timeStamp}_",".jpg",storageDir).apply {
+        return File.createTempFile("JPEG_${timeStamp}_", ".jpg", storageDir).apply {
             mCurrentPhotoPath = absolutePath
         }
     }
 
-    fun getImageUri():Uri?{
+    fun getImageUri(): Uri? {
         return imageUri
     }
 
-    fun setImageUri(uri:Uri?){
+    fun setImageUri(uri: Uri?) {
         imageUri = uri
-    }
-
-    fun clearImageUri(){
-        imageUri = null
     }
 }
